@@ -4,3 +4,12 @@ nested:
   property: nested_property_value
   layered:
     property: nested_property_layered_value
+  list:
+    - name: name1
+      description: description1
+    - name: name2
+      description: description2
+
+basic_pojo:
+  name: name
+  description: description
