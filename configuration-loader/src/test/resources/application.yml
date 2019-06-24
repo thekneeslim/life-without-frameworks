@@ -1,0 +1,6 @@
+basic_property: basic_property_value
+
+nested:
+  property: nested_property_value
+  layered:
+    property: nested_property_layered_value
