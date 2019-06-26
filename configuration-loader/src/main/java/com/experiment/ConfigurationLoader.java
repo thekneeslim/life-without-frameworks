@@ -3,23 +3,21 @@ package com.experiment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.io.SequenceInputStream;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ConfigurationLoader {
 
     public static final int STARTING_INDEX = 0;
-    private final Map<String, Object> properties;
+    private Map<String, Object> properties;
 
-    public ConfigurationLoader() {
+    public ConfigurationLoader(List<String> configurationFiles) {
+        InputStream consolidatedConfiguration = loadConfigurations(configurationFiles);
         Yaml yaml = new Yaml();
-        InputStream inputStream = this.getClass()
-                .getClassLoader()
-                .getResourceAsStream("application.yml");
-        this.properties = yaml.load(inputStream);
+        this.properties = yaml.load(consolidatedConfiguration);
     }
 
     public String getPropertyFor(String propertyName) {
@@ -31,10 +29,23 @@ public class ConfigurationLoader {
         return getProperty(propertyChain, STARTING_INDEX, this.properties, clazzToMap);
     }
 
+    private InputStream loadConfigurations(List<String> configurationFiles) {
+        List<InputStream> streams = configurationFiles.stream()
+                .map(file -> Optional.ofNullable(this.getClass().getClassLoader().getResourceAsStream(file)).orElseThrow(() -> new IllegalArgumentException(String.format("Unable to fine file %s!", file))))
+                .map(this::appendLineBreak)
+                .collect(Collectors.toList());
+        return new SequenceInputStream(Collections.enumeration(streams));
+    }
+
+    private InputStream appendLineBreak(InputStream stream) {
+        return new SequenceInputStream(stream, new ByteArrayInputStream("\n".getBytes()));
+    }
+
     private <T> T getProperty(List<String> propertyChain, int index, Map map, Class<T> clazzToMap) {
         Object value = Optional.ofNullable(map.get(propertyChain.get(index)))
                 .orElseThrow(() -> new IllegalArgumentException(String.format("Property (%s) does not exist!", String.join(".", propertyChain))));
         int INCREMENTED_INDEX = index + 1;
+
         if(value instanceof Map && isNotLastValueOf(propertyChain, INCREMENTED_INDEX)) {
             return getProperty(propertyChain, INCREMENTED_INDEX, (Map) value, clazzToMap);
         }

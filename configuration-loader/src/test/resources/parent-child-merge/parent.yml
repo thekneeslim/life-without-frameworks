@@ -1,0 +1,3 @@
+parent:
+  description: description
+  property: parent_block_property
